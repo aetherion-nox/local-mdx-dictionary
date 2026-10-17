@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "本地 MDX 词典"
+  },
+  "extensionDescription": {
+    "message": "在网页中点击、选中或悬停查询用户导入的 MDX 词典，展示完整原始词条，支持多个词典及 MDD 资源。"
+  }
+}

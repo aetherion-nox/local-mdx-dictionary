@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "로컬 MDX 사전"
+  },
+  "extensionDescription": {
+    "message": "웹페이지에서 클릭·선택·호버로 로컬 MDX 사전을 조회하고 원본 항목을 표시합니다. 여러 사전과 MDD를 지원합니다."
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "ローカル MDX 辞書"
+  },
+  "extensionDescription": {
+    "message": "Webページで単語をクリック・選択・ホバーして、読み込んだMDX辞書の項目をそのまま表示。複数辞書とMDDに対応。"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "本機 MDX 詞典"
+  },
+  "extensionDescription": {
+    "message": "在網頁點擊、選取或懸停查詢本機 MDX 辭典，顯示完整詞條並支援多本辭典與 MDD 資源。"
+  }
+}
