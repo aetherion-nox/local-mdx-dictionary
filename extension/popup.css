@@ -142,3 +142,5 @@ button:disabled {
 /* Generic dictionary manager */
 body{width:385px} .logo{background:linear-gradient(145deg,#397b8b,#264c6a);font-size:25px} .hint{font-size:11px;line-height:1.5;margin:8px 0;color:#777} .dictionary-list{display:grid;gap:7px;margin-top:10px}
 .dict-item{border:1px solid rgba(127,127,127,.23);border-radius:10px;padding:9px;background:rgba(127,127,127,.035)} .dict-top{display:flex;gap:7px;align-items:center}.dict-top strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dict-controls{display:flex;gap:5px;margin-top:8px}.dict-controls button{font-size:11px;padding:6px 3px;margin:0;flex:1}.test-row{display:flex;gap:7px;margin-top:9px}.test-row input{flex:1;min-width:0;border:1px solid #aaa;border-radius:7px;padding:8px;background:transparent;color:inherit}.test-row button{width:75px;margin:0}.test-results{margin-top:8px;max-height:130px;overflow:auto;overflow-wrap:anywhere}.test-results div{padding:7px;border-top:1px solid #ccc}.test-results small{word-break:break-word}
+
+.logo{display:block;object-fit:contain;background:none;box-shadow:none}
