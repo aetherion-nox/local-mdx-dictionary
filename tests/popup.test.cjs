@@ -1,0 +1,13 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
+const source=fs.readFileSync(__dirname+'/../extension/content.js','utf8');
+function fn(name){const start=source.indexOf('  function '+name+'(');let p=source.indexOf('{',start),n=1,i=p+1;for(;n;i++){if(source[i]==='{')n++;if(source[i]==='}')n--;}return source.slice(start,i);}
+test('pinned position survives reposition and close resets it',()=>{const props={};const ctx={demandPositionScheduled:true,demandPinnedPosition:{left:75,top:90},innerWidth:1000,innerHeight:800,demandPopup:{isConnected:true,style:{setProperty:(k,v)=>props[k]=v},getBoundingClientRect:()=>({width:300,height:200}),classList:{toggle(){}}},exactWordRect:()=>{throw Error('must not use anchor while pinned')},demandOpenRequestId:0,demandRequestId:0,removeDemandPopupNode(){},settings:{}};vm.createContext(ctx);vm.runInContext(fn('positionDemandPopup')+'\n'+fn('hideDemandPopup'),ctx);ctx.positionDemandPopup();assert.equal(props.left,'75px');assert.equal(props.top,'90px');ctx.hideDemandPopup();assert.equal(ctx.demandPinnedPosition,null);});
+test('automatic dismissal respects close-only and pinned hover',()=>{const ctx={settings:{closeOnlyWithButton:true},demandPinnedPosition:null,calls:0,hideDemandPopup(){ctx.calls++}};vm.createContext(ctx);vm.runInContext(fn('dismissDemandPopup'),ctx);ctx.dismissDemandPopup('outside');assert.equal(ctx.calls,0);ctx.settings.closeOnlyWithButton=false;ctx.demandPinnedPosition={left:1,top:1};ctx.dismissDemandPopup('hover');assert.equal(ctx.calls,0);ctx.dismissDemandPopup('outside');assert.equal(ctx.calls,1);});
+for (const moved of [false,true]) test(`touching popup controls cannot repeat previous lookup (dragged=${moved})`,()=>{
+ const timers=[];let reopened=0;const button={};
+ const ctx={demandPopup:{contains:t=>t===button},demandTouchPoint:{x:30,y:40},demandTouchMoved:moved,demandTouchHoldTimer:99,settings:{selectionToLookup:false},demandModeActive:()=>true,clearTimeout(){},setTimeout:f=>{timers.push(f);return timers.length},showDemandFromSelection:()=>false,activeDocumentSelection:()=>null,wordHitFromPoint:()=>({original:'old'}),showDemandPronunciation:()=>reopened++,scheduleDemandSelectionProbes(){}};
+ vm.createContext(ctx);vm.runInContext(['clearDemandTouchHold','handleDemandTouchStart','handleDemandTouchEnd','showDemandFromRememberedTouch'].map(fn).join('\n'),ctx);
+ ctx.handleDemandTouchStart({target:button,touches:[{clientX:1,clientY:1}]});
+ ctx.demandPopup=null; // close button removes the popup before queued touch fallback runs
+ ctx.handleDemandTouchEnd();for(const f of timers)f();assert.equal(reopened,0);
+});

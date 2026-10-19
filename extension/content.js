@@ -21,6 +21,7 @@
     selectionToLookup: true,
     showMissingPopup: false,
     autoLookupOnEdit: false,
+    closeOnlyWithButton: false,
     onDemandMode: true,
     demandPopupPosition: "below",
     uiLanguage: detectUiLanguage()
@@ -897,7 +898,16 @@
     demandPopupTrigger = "";
   }
 
+  let demandPinnedPosition = null;
+  let demandDragging = false;
+
+  function dismissDemandPopup(reason) {
+    if (settings.closeOnlyWithButton || (reason === "hover" && demandPinnedPosition)) return;
+    hideDemandPopup();
+  }
+
   function hideDemandPopup() {
+    demandPinnedPosition = null;
     demandOpenRequestId += 1;
     demandRequestId += 1;
     removeDemandPopupNode();
@@ -948,6 +958,18 @@
   function positionDemandPopup() {
     demandPositionScheduled = false;
     if (!demandPopup || !demandPopup.isConnected) return;
+    if (demandPinnedPosition) {
+      const popup = demandPopup;
+      popup.style.setProperty("transform", "none", "important");
+      popup.style.setProperty("max-height", `${Math.max(80, innerHeight - 10)}px`, "important");
+      const bounds = popup.getBoundingClientRect();
+      const left = Math.max(5, Math.min(demandPinnedPosition.left, innerWidth - bounds.width - 5));
+      const top = Math.max(5, Math.min(demandPinnedPosition.top, innerHeight - bounds.height - 5));
+      popup.style.setProperty("left", `${left}px`, "important");
+      popup.style.setProperty("top", `${top}px`, "important");
+      popup.style.setProperty("visibility", "visible", "important");
+      return;
+    }
     const rect = exactWordRect(currentDemandAnchorRange());
     if (!rect) return;
 
@@ -1100,7 +1122,7 @@
     // If misses should stay invisible, check before creating the popup. An
     // unknown lookup must not flash a loading box and immediately disappear.
     // Reuse this response for rendering, avoiding a second dictionary read.
-    hideDemandPopup();
+    demandRequestId += 1;
     const openRequest = ++demandOpenRequestId;
     let firstResponse = null;
     if (!settings.showMissingPopup) {
@@ -1116,6 +1138,7 @@
           (trigger === 'hover' && (!settings.hoverToShow || activeDocumentSelection()))) return;
       if (firstResponse?.ok && !(firstResponse.entries || []).some(item => item.html || item.error)) return;
     }
+    removeDemandPopupNode();
     const popup = document.createElement('div');
     popup.className = 'eipa-demand-popup eipa-dictionary-popup eipa-selectable';
     popup.dataset.eipaIgnore = 'true';
@@ -1125,6 +1148,35 @@
 
     const header = document.createElement('div');
     header.className = 'eipa-dict-header';
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'eipa-dict-drag';
+    dragHandle.textContent = '⠿';
+    dragHandle.title = ({'zh-CN':'拖动移动窗口','zh-TW':'拖曳移動視窗',ja:'ドラッグして移動',ko:'드래그하여 이동'})[settings.uiLanguage] || 'Drag to move';
+    header.append(dragHandle);
+    dragHandle.addEventListener('pointerdown', event => {
+      if (event.button > 0) return;
+      event.preventDefault(); event.stopPropagation();
+      clearDemandHoverTimer();
+      const rect = popup.getBoundingClientRect();
+      const startX = event.clientX, startY = event.clientY;
+      demandDragging = true;
+      dragHandle.setPointerCapture(event.pointerId);
+      const move = e => {
+        if (e.pointerId !== event.pointerId) return;
+        demandPinnedPosition = {left: rect.left + e.clientX - startX, top: rect.top + e.clientY - startY};
+        positionDemandPopup();
+      };
+      const finish = e => {
+        if (e.pointerId !== event.pointerId) return;
+        demandDragging = false;
+        dragHandle.removeEventListener('pointermove', move);
+        dragHandle.removeEventListener('pointerup', finish);
+        dragHandle.removeEventListener('pointercancel', finish);
+      };
+      dragHandle.addEventListener('pointermove', move);
+      dragHandle.addEventListener('pointerup', finish);
+      dragHandle.addEventListener('pointercancel', finish);
+    });
     const queryRow = document.createElement('div');
     queryRow.className = 'eipa-dict-query-row';
     const field = document.createElement('input');
@@ -1191,7 +1243,7 @@
     field.addEventListener('compositionend', () => { composing = false; onEdit(); });
     field.addEventListener('input', onEdit);
     field.addEventListener('keydown', event => {
-      if (event.key === 'Escape') { event.preventDefault(); hideDemandPopup(); }
+      if (event.key === 'Escape') { event.preventDefault(); dismissDemandPopup('escape'); }
       if (event.key === 'Enter' && !composing && !event.isComposing) {
         event.preventDefault();
         submitEditedText();
@@ -1215,7 +1267,7 @@
     popup.addEventListener('keydown', event => {
       if (event.key === 'Escape' && event.target !== field) {
         event.preventDefault();
-        hideDemandPopup();
+        dismissDemandPopup('escape');
       }
     });
     (document.documentElement || document.body).append(popup);
@@ -1288,7 +1340,7 @@
   }
 
   function handleDemandPointerMove(event) {
-    if (!demandModeActive() || !settings.hoverToShow || event.pointerType === "touch") return;
+    if (demandDragging || !demandModeActive() || !settings.hoverToShow || event.pointerType === "touch") return;
     if (demandPopup?.contains(event.target)) return;
     if (activeDocumentSelection()) return;
     const x = event.clientX;
@@ -1300,7 +1352,7 @@
       if (!demandModeActive() || !settings.hoverToShow || activeDocumentSelection()) return;
       const hit = wordHitFromPoint(x, y);
       if (!hit) {
-        if (demandPopupTrigger === "hover") hideDemandPopup();
+        if (demandPopupTrigger === "hover") dismissDemandPopup("hover");
         return;
       }
       if (demandPopup && sameDemandWord(hit)) return;
@@ -1312,7 +1364,7 @@
     if (!settings.hoverToShow || event.relatedTarget != null) return;
     clearDemandHoverTimer();
     ++demandOpenRequestId;
-    if (demandPopupTrigger === "hover") hideDemandPopup();
+    if (demandPopupTrigger === "hover") dismissDemandPopup("hover");
   }
 
   function clearDemandTouchHold() {
@@ -1337,7 +1389,7 @@
     demandSelectingPointer = true;
     dismissedDemandSelectionSignature = demandSelectionSignature();
     clearDemandSelectionProbes();
-    hideDemandPopup();
+    if (!demandPinnedPosition) dismissDemandPopup("outside");
   }
 
   function handleDemandPointerUp(event) {
@@ -1354,11 +1406,20 @@
       if (activeDocumentSelection()) return;
       const hit = wordHitFromPoint(clientX, clientY);
       if (hit) void showDemandPronunciation(hit);
+      else dismissDemandPopup("outside");
     }, 0);
   }
 
   function handleDemandTouchStart(event) {
-    if (!demandModeActive() || demandPopup?.contains(event.target)) return;
+    // A popup tap belongs to its controls, not the previous page touch.
+    // touchend is observed globally, even if the close click removes the popup.
+    if (demandPopup?.contains(event.target)) {
+      clearDemandTouchHold();
+      demandTouchPoint = null;
+      demandTouchMoved = false;
+      return;
+    }
+    if (!demandModeActive()) return;
     const touch = event.touches?.[0];
     if (!touch) return;
     demandTouchPoint = { x: touch.clientX, y: touch.clientY };
@@ -2060,7 +2121,7 @@
     }
     if (hoverChanged && !settings.hoverToShow) {
       ++demandOpenRequestId;
-      if (demandPopupTrigger === "hover") hideDemandPopup();
+      if (demandPopupTrigger === "hover") dismissDemandPopup("hover");
     }
     if (meaningChanged) {
       for (const wrapper of wrappers) if (wrapper.isConnected) applyMeaningMode(wrapper);

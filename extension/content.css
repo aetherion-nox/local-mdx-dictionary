@@ -416,3 +416,6 @@ html.eipa-demand-enabled > .eipa-demand-popup.eipa-dictionary-popup p.eipa-dict-
     color: #c4ced8 !important;
   }
 }
+
+html.eipa-demand-enabled .eipa-dict-drag { cursor: grab !important; touch-action: none !important; user-select: none !important; text-align: center !important; padding: 3px !important; font-size: 19px !important; line-height: 20px !important; }
+html.eipa-demand-enabled .eipa-dict-drag:active { cursor: grabbing !important; }

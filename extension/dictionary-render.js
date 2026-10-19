@@ -41,6 +41,8 @@
     const sheets=[...doc.querySelectorAll('link[rel="stylesheet"][href]')];
     const stylesheets=[];
     for(const el of sheets){const path=cleanPath(el.getAttribute('href'));if(assets[path]?.text)stylesheets.push({path,css:assets[path].text});el.remove();}
+    // Apply manually attached styles even when the entry has no stylesheet link.
+    if(entry.customCss?.text)stylesheets.push({path:entry.customCss.name || 'dictionary.css',css:entry.customCss.text});
     const cssResources=new Set();
     for(const sheet of stylesheets){
       for(const match of sheet.css.matchAll(/url\(\s*['"]?([^)'"\s]+)['"]?\s*\)/gi)) {

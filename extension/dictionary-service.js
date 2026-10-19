@@ -38,7 +38,9 @@ async function dictionaryLookups(word, onlyId = null) {
       if (!reader) continue;
       const hit = await reader.lookupExact(query) || await reader.lookup(query);
       if (!hit) continue;
-      results.push({dictionaryId: item.id, dictionaryName: item.title || item.name, key: hit.key, html: hit.definition});
+      const savedCss = await idbGet(`dict:${item.id}:css`);
+      const customCss = savedCss?.blob ? {name:savedCss.name || 'dictionary.css',text:await savedCss.blob.text()} : null;
+      results.push({customCss,dictionaryId: item.id, dictionaryName: item.title || item.name, key: hit.key, html: hit.definition});
     } catch (error) {
       results.push({dictionaryId:item.id,dictionaryName:item.title || item.name,key:query,error:String(error?.message || error)});
     }
